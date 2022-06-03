@@ -229,21 +229,21 @@ TwoPhaseAlgo::preSuspendBarrier(query_t query)
   switch (query) {
     case INTENT:
       setCkptPending();
-      if (getCurrState() == PHASE_1) {
+      if ((st = getCurrState()) == PHASE_1) {
 	st = waitForNewStateAfter(PHASE_1, 100 /* timeout ms*/);
 	if (st == PHASE_1) break;
         // Wait for us to finish doing IN_CS
         if (st != IN_CS) {
           break;
         } else {
-          while (waitForNewStateAfter(IN_CS) != IN_CS);
+          while ((st = waitForNewStateAfter(IN_CS)) != IN_CS);
         }
       }
       break;
     case FREE_PASS:
       phase1_freepass = true;
       // If in PHASE_1, wait for us to finish PHASE_1 (to enter IN_CS)
-      while (waitForNewStateAfter(ST_UNKNOWN) == PHASE_1);
+      while ((st = waitForNewStateAfter(ST_UNKNOWN)) == PHASE_1);
       break;
     case WAIT_STRAGGLER:
       // Maybe some peers in critical section and some in PHASE_1 or
@@ -264,7 +264,7 @@ TwoPhaseAlgo::preSuspendBarrier(query_t query)
     {.lineNo = __LINE__, ._comm = _comm, .comm = -1,
      .state = ST_UNKNOWN, .currState = getCurrState()});
   // maintain consistent view for DMTCP coordinator
-  st = getCurrState();
+  JTRACE("foo, preSuspendBarrier state")(st)(getCurrState());
   int gid = VirtualGlobalCommId::instance().getGlobalId(_comm);
   commStateHistoryAdd(
     {.lineNo = __LINE__, ._comm = _comm, .comm = gid,
