@@ -127,6 +127,7 @@ TwoPhaseAlgo::commit_begin(MPI_Comm comm)
   // Call the trivial barrier
   DMTCP_PLUGIN_DISABLE_CKPT();
   setCurrState(IN_TRIVIAL_BARRIER);
+  JTRACE("foo, IN_TRIVIAL_BARRIER is set");
   // Set state again incase we returned from beforeTrivialBarrier
   MPI_Request request;
   MPI_Comm realComm = VIRTUAL_TO_REAL_COMM(comm);
@@ -137,6 +138,7 @@ TwoPhaseAlgo::commit_begin(MPI_Comm comm)
   RETURN_TO_UPPER_HALF();
   MPI_Request virtRequest = ADD_NEW_REQUEST(request);
   _request = virtRequest;
+  JTRACE("foo, after Ibarrier")(_request)(request)(_comm);
   JASSERT(tb_rc == MPI_SUCCESS)
     .Text("The trivial barrier in two-phase-commit algorithm failed");
   DMTCP_PLUGIN_ENABLE_CKPT();
@@ -153,6 +155,7 @@ TwoPhaseAlgo::commit_begin(MPI_Comm comm)
   }
 #else
   MPI_Wait(&_request, MPI_STATUS_IGNORE);
+  JTRACE("foo,after Wait")(_request);
 #endif
 
   if (isCkptPending()) {
@@ -161,6 +164,7 @@ TwoPhaseAlgo::commit_begin(MPI_Comm comm)
   REMOVE_OLD_REQUEST(_request);
   _request = MPI_REQUEST_NULL;
   setCurrState(IN_CS);
+  JTRACE("foo,IN_CS is set");
 }
 
 void
@@ -172,6 +176,7 @@ TwoPhaseAlgo::commit_finish()
     {.lineNo = __LINE__, ._comm = _comm, .comm = -1,
      .state = ST_UNKNOWN, .currState = getCurrState()});
   setCurrState(IS_READY);
+  JTRACE("foo, commit_finish set IS_READY")(getCurrState()); 
   wrapperExit();
   commStateHistoryAdd(
     {.lineNo = __LINE__, ._comm = _comm, .comm = -1,
@@ -190,6 +195,7 @@ TwoPhaseAlgo::logIbarrierIfInTrivBarrier()
   } else {
     _replayTrivialBarrier = false;
   }
+  JTRACE("foo, _replayTrivialBarrier is set")(_replayTrivialBarrier);
 }
 
 void
@@ -203,6 +209,7 @@ TwoPhaseAlgo::replayTrivialBarrier()
     JUMP_TO_LOWER_HALF(lh_info.fsaddr);
     tb_rc = NEXT_FUNC(Ibarrier)(realComm, &request);
     RETURN_TO_UPPER_HALF();
+    JTRACE("foo, replayTrivialBarrier")(_request)(request);
     UPDATE_REQUEST_MAP(_request, request);
     _replayTrivialBarrier = false;
   }
@@ -264,7 +271,7 @@ TwoPhaseAlgo::preSuspendBarrier(query_t query)
     {.lineNo = __LINE__, ._comm = _comm, .comm = -1,
      .state = ST_UNKNOWN, .currState = getCurrState()});
   // maintain consistent view for DMTCP coordinator
-  JTRACE("foo, preSuspendBarrier state")(st)(getCurrState());
+  JTRACE("foo, preSuspendBarrier state")(st)(getCurrState())(st == getCurrState());
   int gid = VirtualGlobalCommId::instance().getGlobalId(_comm);
   commStateHistoryAdd(
     {.lineNo = __LINE__, ._comm = _comm, .comm = gid,
