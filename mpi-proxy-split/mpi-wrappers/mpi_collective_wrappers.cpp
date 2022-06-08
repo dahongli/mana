@@ -101,10 +101,13 @@ USER_DEFINED_WRAPPER(int, Bcast,
     JUMP_TO_LOWER_HALF(lh_info.fsaddr);
     retval = NEXT_FUNC(Bcast)(buffer, count, realType, root, realComm);
     RETURN_TO_UPPER_HALF();
+    JTRACE("foo,after Bcast")(count)(realType)(root)(realComm);
     DMTCP_PLUGIN_ENABLE_CKPT();
     // Call MPI_Barrier in the critical section to wait until all rank in the
     // communictor finished.
+    JTRACE("foo before Bcast - Barrier");
     MPI_Barrier(comm);
+    JTRACE("foo after Bcast - Barrier");
     return retval;
   };
   return twoPhaseCommit(comm, realBarrierCb);
